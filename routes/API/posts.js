@@ -10,15 +10,10 @@ const middleware = require('./middleware');
  * @access Private (TODO)
  */
 
-router.get('/', middleware, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        // Get the user ID from the request object set by authMiddleware
-        const userId = req.user.userId;
-
-        // Fetch posts for the logged-in user
-        const posts = await prisma.post.findMany({
-            where: { userId: userId },
-        });
+        // Fetch all posts
+        const posts = await prisma.post.findMany();
 
         res.status(200).json(posts);
     } catch (error) {
@@ -33,20 +28,19 @@ router.get('/', middleware, async (req, res) => {
  * @desc Get a specific post by id for the logged-in user
  * @access Private
  */
-router.get('/:id', middleware, async (req, res) => {
+router.get('/:id', async (req, res) => {
     const postId = parseInt(req.params.id, 10);
-    const userId = req.user.userId;
 
     try {
-        // Fetch the post by id and userId
+        // Fetch the post by id
         const post = await prisma.post.findUnique({
             where: {
                 id: postId,
             },
         });
 
-        // Check if the post exists and belongs to the logged-in user
-        if (!post || post.userId !== userId) {
+        // Check if the post exists
+        if (!post) {
             return res.status(404).json({ error: 'Post not found or you do not have access to this post' });
         }
 
