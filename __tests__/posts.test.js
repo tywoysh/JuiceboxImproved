@@ -83,23 +83,52 @@ describe('POST /posts', () => {
         expect(response.body).toHaveProperty('content', newPostData.content);
         expect(response.body).toHaveProperty('userId', 1); // Ensure userId is set correctly
     });
+});
 
-    // it('should return 500 if there is an error', async () => {
-    //     const newPostData = { title: 'New Test Post', content: 'New Test Content' };
+describe('PUT /posts/:id', () => {
+    let postId;
 
-    //     // Mock Prisma client's create method to throw an error
-    //     jest.spyOn(prisma.post, 'create').mockImplementation(() => {
-    //         throw new Error('Something went wrong');
-    //     });
+    beforeAll(async () => {
+        // Assuming there's at least one post in the database
+        const existingPost = await prisma.post.findFirst();
+        if (existingPost) {
+            postId = existingPost.id;
+        } else {
+            // If no post exists, create a post for testing
+            const newPost = await prisma.post.create({
+                data: {
+                    title: 'Test Post',
+                    content: 'This is a test post',
+                    userId: 1, // Replace with a valid user ID from your database
+                },
+            });
+            postId = newPost.id;
+        }
+    });
 
-    //     const response = await request(app)
-    //         .post('/api/posts')
-    //         .send(newPostData)
-    //         .expect(500);
+    it('should update an existing post and return the updated post', async () => {
+        const updatedPostData = { title: 'Updated Test Post', content: 'Updated Test Content' };
 
-    //     expect(response.body).toEqual({ error: 'Something went wrong' });
+        const response = await request(app)
+            .put(`/api/posts/${postId}`)
+            .send(updatedPostData)
+            .expect('Content-Type', /json/)
+            .expect(200);
 
-    //     // Restore the original implementation
-    //     prisma.post.create.mockRestore();
-    // });
+        // Check if the response body matches the expected output
+        expect(response.body).toHaveProperty('id', postId);
+        expect(response.body).toHaveProperty('title', updatedPostData.title);
+        expect(response.body).toHaveProperty('content', updatedPostData.content);
+        expect(response.body).toHaveProperty('userId', 1); // Ensure userId is set correctly
+    });
+
+    it('should return 404 for a non-existent post ID', async () => {
+        const nonExistentId = 99999; // Use an ID that you know doesn't exist
+        const updatedPostData = { title: 'Updated Test Post', content: 'Updated Test Content' };
+
+        await request(app)
+            .put(`/api/posts/${nonExistentId}`)
+            .send(updatedPostData)
+            .expect(404);
+    });
 });
